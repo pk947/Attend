@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Party LK - Attendance System</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--bg:#F2EEE8;--card:#E8E2D9;--burg:#7A1F2B;--gold:#D4AF37;--text:#252525;--muted:#666058;--hi:#fff;--sh:#C8C0B5;--shd:#A8A095;--ok:#3A9D6E;--err:#D9534F;
+--s-card:10px 10px 20px var(--sh),-10px -10px 20px var(--hi);--s-btn:6px 6px 12px var(--sh),-6px -6px 12px var(--hi);--s-act:inset 4px 4px 8px var(--shd),inset -4px -4px 8px var(--hi);--s-in:inset 6px 6px 12px var(--sh),inset -6px -6px 12px var(--hi)}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Nunito',sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);display:flex;justify-content:center;min-height:100vh;padding:20px 10px}
+.app{width:100%;max-width:480px;min-height:840px;border-radius:36px;padding:24px 20px 100px;position:relative;box-shadow:16px 16px 32px var(--sh),-16px -16px 32px var(--hi);overflow:hidden}
+header{text-align:center;margin-bottom:20px}
+.brand{color:var(--burg);font-weight:900;font-size:26px;letter-spacing:1.5px;text-transform:uppercase}
+.sub{color:var(--gold);font-weight:700;font-size:14px}
+.card{background:var(--card);border-radius:28px;padding:20px;margin-bottom:20px;box-shadow:var(--s-card);border:3px solid rgba(255,255,255,.4)}
+.btn{width:100%;background:var(--card);border:2px solid rgba(255,255,255,.6);border-radius:24px;padding:14px 18px;font-weight:800;font-size:14px;color:var(--text);cursor:pointer;box-shadow:var(--s-btn);text-transform:uppercase;margin-top:8px}
+.btn:active{box-shadow:var(--s-act)}
+.p{background:var(--burg);color:#fff}.g{background:var(--gold);color:#fff}.d{background:var(--err);color:#fff}
+.sm{width:auto;padding:6px 12px;font-size:11px;margin:0}
+.in{width:100%;background:var(--bg);border:2px solid rgba(255,255,255,.5);border-radius:20px;padding:12px 16px;font-size:15px;font-weight:700;box-shadow:var(--s-in);outline:none;margin:6px 0 12px}
+label{font-weight:800;font-size:11px;color:var(--muted);text-transform:uppercase}
+.nav{position:absolute;bottom:20px;left:20px;right:20px;height:64px;background:var(--card);border-radius:32px;box-shadow:var(--s-card);display:flex;justify-content:space-around;align-items:center}
+.ni{border:none;background:none;font-weight:700;font-size:11px;color:var(--muted);cursor:pointer;padding:8px 20px;border-radius:20px;display:flex;flex-direction:column;align-items:center}
+.ni.on{color:var(--burg);box-shadow:var(--s-act)}
+.screen{display:none}.screen.on{display:block}
+.row{display:flex;gap:10px;align-items:center}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.box{background:var(--card);border-radius:22px;padding:14px;text-align:center;box-shadow:var(--s-card)}
+.box small{font-size:11px;font-weight:700;color:var(--muted)}.box b{display:block;font-size:20px;font-weight:900;color:var(--burg)}
+.avatar{width:56px;height:56px;border-radius:50%;background:var(--burg);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;border:2px solid var(--gold);box-shadow:var(--s-btn)}
+#qr-reader{width:100%;border-radius:20px;overflow:hidden;box-shadow:var(--s-in)}
+.icon{width:70px;height:70px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:32px;background:var(--gold)}
+.icon.ok{background:var(--ok)}.icon.err{background:var(--err)}
+.scroll{max-height:200px;overflow:auto}
+table{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:12px}
+th{text-align:left;color:var(--muted);padding:0 6px}
+td{background:var(--card);padding:9px 6px;font-weight:700;box-shadow:var(--s-card)}
+td:first-child{border-radius:10px 0 0 10px}td:last-child{border-radius:0 10px 10px 0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal .card{width:90%;max-width:400px;margin:0}
+.muted{font-size:13px;color:var(--muted);font-weight:700}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="brand">Party LK</div><div class="sub">Attendance System</div></header>
+
+<!-- HOME -->
+<section id="home" class="screen on">
+  <div class="card row"><div class="avatar" id="av">--</div>
+    <div><h3 id="nm" style="font-weight:800">Welcome</h3><p class="muted" id="ds">Enter ID or Name</p></div></div>
+  <div class="card">
+    <label>Employee ID or Name</label><input id="eid" class="in" placeholder="e.g. PLK001 or your full name" onchange="loadStatus()">
+    <div class="row"><button class="btn p" onclick="startScan('IN')">Clock IN</button><button class="btn g" onclick="startScan('OUT')">Clock OUT</button></div>
+    <p class="muted" style="margin-top:10px;text-align:center">QR scan + location check are required.</p>
+  </div>
+  <div class="grid"><div class="box"><small>TODAY IN</small><b id="tin">--:--</b></div><div class="box"><small>TODAY OUT</small><b id="tout">--:--</b></div></div>
+  <button class="btn" onclick="empPDF()">📄 Download My PDF Report</button>
+</section>
+
+<!-- SCANNER -->
+<section id="scan" class="screen"><div class="card" style="text-align:center">
+  <h3 style="color:var(--burg);margin-bottom:12px">SCAN ENTRANCE QR</h3><div id="qr-reader"></div>
+  <p class="muted" style="margin:12px 0">Point the camera at the printed entrance QR</p>
+  <button class="btn d" onclick="go('home')">Cancel</button></div></section>
+
+<!-- GPS / RESULT -->
+<section id="res" class="screen"><div class="card" style="text-align:center">
+  <div class="icon" id="ri">📍</div>
+  <h3 id="rt" style="color:var(--burg)">Verifying...</h3>
+  <p class="muted" id="rm" style="margin:10px 0"></p>
+  <button class="btn p" id="rb" style="display:none" onclick="go('home')">Back to Home</button></div></section>
+
+<!-- ADMIN LOGIN -->
+<section id="alogin" class="screen"><div class="card">
+  <h3 style="text-align:center;color:var(--burg);margin-bottom:14px">OWNER LOGIN</h3>
+  <label>Owner Password</label><input id="apass" type="password" class="in" placeholder="Enter password" onkeydown="if(event.key==='Enter')login()">
+  <button class="btn p" onclick="login()">Login</button></div></section>
+
+<!-- ADMIN DASH -->
+<section id="adash" class="screen">
+  <div class="row" style="justify-content:space-between;margin-bottom:12px"><h3 style="color:var(--burg)">OWNER PORTAL</h3>
+    <button onclick="logout()" style="background:none;border:none;color:var(--err);font-weight:800;cursor:pointer">Logout</button></div>
+  <div class="grid"><div class="box"><small>TOTAL EMPLOYEES</small><b id="st-t">0</b></div><div class="box"><small>PRESENT TODAY</small><b id="st-p" style="color:var(--ok)">0</b></div></div>
+
+  <div class="card" style="padding:12px">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px"><h4 style="color:var(--burg)">Employees</h4>
+      <div class="row"><button class="btn g sm" onclick="showQR()">QR</button><button class="btn g sm" onclick="empModal()">+ Add</button></div></div>
+    <div class="scroll"><table><thead><tr><th>ID</th><th>Name</th><th>Role</th><th></th></tr></thead><tbody id="te"></tbody></table></div>
+  </div>
+
+  <div class="card" style="padding:12px">
+    <h4 style="color:var(--burg);margin-bottom:8px">Attendance Logs</h4>
+    <div class="row"><div style="flex:1"><label>From</label><input type="date" id="df" class="in" style="padding:8px 10px;margin:4px 0 8px" onchange="renderLogs()"></div>
+      <div style="flex:1"><label>To</label><input type="date" id="dt" class="in" style="padding:8px 10px;margin:4px 0 8px" onchange="renderLogs()"></div></div>
+    <div class="row"><input id="df-id" class="in" placeholder="Employee ID (optional)" style="padding:8px 12px;margin:0" oninput="renderLogs()">
+      <button class="btn p sm" onclick="ownerPDF()">📄 PDF</button></div>
+    <div class="scroll" style="margin-top:8px"><table><thead><tr><th>Date</th><th>Name</th><th>Type</th><th>Time</th></tr></thead><tbody id="tl"></tbody></table></div>
+  </div>
+</section>
+
+<nav class="nav">
+  <button class="ni on" id="n-home" onclick="go('home')"><span>🏠</span>Home</button>
+  <button class="ni" id="n-admin" onclick="go(token?'adash':'alogin')"><span>🔒</span>Owner</button>
+</nav>
+</div>
+
+<!-- Employee modal -->
+<div id="em" class="modal"><div class="card">
+  <h3 id="em-t" style="color:var(--burg);margin-bottom:10px">Add Employee</h3>
+  <label>Employee ID</label><input id="m-id" class="in">
+  <label>Full Name</label><input id="m-nm" class="in">
+  <label>Designation</label><input id="m-ro" class="in">
+  <label>Status</label><select id="m-st" class="in"><option>Active</option><option>Inactive</option></select>
+  <div class="row"><button class="btn p" onclick="saveEmp()">Save</button><button class="btn d" onclick="closeM('em')">Cancel</button></div>
+</div></div>
+<!-- QR modal -->
+<div id="qm" class="modal"><div class="card" style="text-align:center">
+  <h3 style="color:var(--burg);margin-bottom:10px">Entrance QR</h3>
+  <div id="qbox" style="display:flex;justify-content:center;background:#fff;padding:14px;border-radius:16px"></div>
+  <div class="row"><button class="btn p" onclick="window.print()">Print</button><button class="btn d" onclick="closeM('qm')">Close</button></div>
+</div></div>
+
+<script>
+/* ===== CONFIG: paste your deployed Apps Script Web App URL ===== */
+const API_URL = "https://script.google.com/macros/s/AKfycbz3G-kV5HP53tuzT8jcIudQYbbhDrJUaCyh-GowYDQbjnZgUMbRFvfOlmrvo4GuU6E2/exec";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let scanner = null, busy = false, type = 'IN', token = '', emps = [], logs = [], qrSecret = '', editing = false, timer = null;
+
+// Text/plain body avoids CORS preflight, which Apps Script cannot answer
+async function api(p) {
+  try {
+    const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(p) });
+    return await r.json();
+  } catch (e) { return { status: 'error', message: 'Network error. Check connection / API_URL.' }; }
+}
+const cred = () => ({ empId: $('eid').value.trim() });
+
+/* ===== Navigation ===== */
+async function stopScan() {
+  if (scanner) { try { await scanner.stop(); scanner.clear(); } catch (e) {} scanner = null; }
+}
+function go(id) {
+  stopScan();
+  clearInterval(timer);
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  $(id).classList.add('on');
+  const adm = id === 'alogin' || id === 'adash';
+  $('n-home').classList.toggle('on', !adm); $('n-admin').classList.toggle('on', adm);
+  if (id === 'adash') timer = setInterval(refresh, 30000); // auto-sync every 30s
+  if (id === 'home') loadStatus();
+}
+
+/* ===== Employee ===== */
+async function loadStatus() {
+  const c = cred();
+  try { localStorage.setItem('plk_id', c.empId); } catch (e) {}
+  if (!c.empId) return;
+  $('av').innerText = c.empId.substring(0, 2).toUpperCase();
+  const d = await api({ action: 'status', ...c });
+  if (d.status === 'success') {
+    $('nm').innerText = d.name; $('ds').innerText = 'ID: ' + d.empId; $('av').innerText = d.name.substring(0, 2).toUpperCase(); $('tin').innerText = (d.todayIn || '--:--').slice(0, 5); $('tout').innerText = (d.todayOut || '--:--').slice(0, 5);
+  } else { $('nm').innerText = d.message; $('tin').innerText = $('tout').innerText = '--:--'; }
+}
+
+function startScan(t) {
+  const c = cred();
+  if (!c.empId) return alert('Enter your Employee ID or Name first.');
+  type = t; busy = false; go('scan');
+  scanner = new Html5Qrcode('qr-reader');
+  scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 220, height: 220 } }, onScan, () => {})
+    .catch(err => { alert('Camera unavailable: ' + err); go('home'); });
+}
+
+async function onScan(text) {
+  if (busy) return; busy = true;          // scanner fires repeatedly; handle once
+  await stopScan();
+  show('📍', '', 'Checking location...', 'Allow location access when asked.', false);
+  if (!navigator.geolocation) return show('✕', 'err', 'GPS not supported', 'Use a device with GPS.', true);
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const d = await api({ action: 'record', ...cred(), type, qr: text.trim(),
+      lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy });
+    // QR secret and distance are verified on the server
+    if (d.status === 'success') {
+      show('✓', 'ok', 'ATTENDANCE RECORDED', `${d.name}\nClocked ${type} at ${d.time}\nDistance: ${d.distance} m`, true);
+    } else show('✕', 'err', 'NOT RECORDED', d.message, true);
+  }, err => show('✕', 'err', 'GPS Error', err.message + ' (HTTPS and location permission required)', true),
+  { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  go('res'); $('rb').style.display = 'none';
+}
+function show(ic, cls, t, m, btn) {
+  $('ri').className = 'icon ' + cls; $('ri').innerText = ic; $('rt').innerText = t;
+  $('rm').style.whiteSpace = 'pre-line'; $('rm').innerText = m; $('rb').style.display = btn ? 'block' : 'none';
+}
+
+/* ===== PDF ===== */
+function makePDF(title, sub, head, body, file) {
+  const doc = new window.jspdf.jsPDF();
+  doc.setTextColor(122, 31, 43); doc.setFontSize(18); doc.text(title, 14, 20);
+  doc.setTextColor(37, 37, 37); doc.setFontSize(11); doc.text(sub, 14, 28);
+  doc.autoTable({ startY: 34, head: [head], body, headStyles: { fillColor: [122, 31, 43] } });
+  doc.save(file);
+}
+async function empPDF() {
+  const c = cred(); if (!c.empId) return alert('Enter your Employee ID or Name first.');
+  const d = await api({ action: 'myLogs', ...c });
+  if (d.status !== 'success') return alert(d.message);
+  if (!d.logs.length) return alert('No attendance records yet.');
+  makePDF('Party LK - Employee Attendance Report', `${d.name} (${d.empId || c.empId})  |  Generated: ${new Date().toLocaleDateString()}`,
+    ['Date', 'Time', 'Type', 'Distance (m)'], d.logs.map(l => [l.Date, l.Time, l.Type, l.Distance_m]), `Attendance_${c.empId}.pdf`);
+}
+function filtered() {
+  const f = $('df').value, t = $('dt').value, id = $('df-id').value.trim().toLowerCase();
+  return logs.filter(l => (!f || l.Date >= f) && (!t || l.Date <= t) && (!id || String(l.EmployeeID).toLowerCase().includes(id)));
+}
+function ownerPDF() {
+  const r = filtered(); if (!r.length) return alert('No records for this filter.');
+  makePDF('Party LK - Master Attendance Report', `Range: ${$('df').value || 'start'} to ${$('dt').value || 'now'}  |  Generated: ${new Date().toLocaleDateString()}`,
+    ['Date', 'Time', 'ID', 'Name', 'Type', 'Dist (m)'], r.map(l => [l.Date, l.Time, l.EmployeeID, l.Name, l.Type, l.Distance_m]),
+    `PartyLK_Attendance_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
+/* ===== Owner ===== */
+async function login() {
+  const p = $('apass').value; if (!p) return alert('Enter password');
+  const d = await api({ action: 'login', password: p });
+  if (d.status !== 'success') return alert(d.message);
+  token = d.token; $('apass').value = ''; go('adash'); refresh();
+}
+function logout() { token = ''; go('home'); }
+async function refresh() {
+  const d = await api({ action: 'adminData', token });
+  if (d.status !== 'success') { token = ''; go('alogin'); return alert(d.message); }
+  emps = d.employees; logs = d.attendance; qrSecret = d.qr;
+  $('st-t').innerText = emps.length;
+  $('st-p').innerText = new Set(logs.filter(l => l.Date === d.today).map(l => l.EmployeeID)).size;
+  $('te').innerHTML = emps.map((e, i) => `<tr><td>${esc(e.EmployeeID)}</td><td>${esc(e.Name)}${e.Status !== 'Active' ? ' 🚫' : ''}</td><td>${esc(e.Designation)}</td>
+    <td><button onclick="empModal(${i})" style="border:none;background:none;cursor:pointer">✏️</button><button onclick="delEmp(${i})" style="border:none;background:none;cursor:pointer">🗑️</button></td></tr>`).join('');
+  renderLogs();
+}
+function renderLogs() {
+  $('tl').innerHTML = filtered().slice(0, 300).map(l => `<tr><td>${esc(l.Date)}</td><td>${esc(l.Name || l.EmployeeID)}</td>
+    <td style="color:${l.Type === 'IN' ? 'var(--ok)' : 'var(--err)'}">${esc(l.Type)}</td><td>${esc(String(l.Time).slice(0, 5))}</td></tr>`).join('');
+}
+function empModal(i) {
+  editing = i !== undefined; const e = editing ? emps[i] : {};
+  $('em-t').innerText = editing ? 'Edit Employee' : 'Add Employee';
+  $('m-id').value = e.EmployeeID || ''; $('m-id').disabled = editing;
+  $('m-nm').value = e.Name || ''; $('m-ro').value = e.Designation || '';
+  $('m-st').value = e.Status || 'Active';
+  $('em').style.display = 'flex';
+}
+const closeM = id => $(id).style.display = 'none';
+async function saveEmp() {
+  const d = await api({ action: 'saveEmployee', token, mode: editing ? 'edit' : 'add', empId: $('m-id').value, name: $('m-nm').value,
+    designation: $('m-ro').value, status: $('m-st').value });
+  if (d.status === 'success') { closeM('em'); refresh(); } else alert(d.message);
+}
+async function delEmp(i) {
+  if (!confirm(`Delete ${emps[i].EmployeeID}? Past attendance logs are kept.`)) return;
+  const d = await api({ action: 'deleteEmployee', token, empId: emps[i].EmployeeID });
+  if (d.status === 'success') refresh(); else alert(d.message);
+}
+function showQR() {
+  $('qbox').innerHTML = ''; new QRCode($('qbox'), { text: qrSecret, width: 240, height: 240 });
+  $('qm').style.display = 'flex';
+}
+
+try { $('eid').value = localStorage.getItem('plk_id') || ''; } catch (e) {}
+</script>
+</body>
+</html>
