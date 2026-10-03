@@ -184,17 +184,34 @@ async function onScan(text) {
   if (busy) return; busy = true;          // scanner fires repeatedly; handle once
   await stopScan();
   show('📍', '', 'Checking location...', 'Allow location access when asked.', false);
+  if (!window.isSecureContext) return show('✕', 'err', 'HTTPS required', 'Open this site with https:// (not http:// or a file). Phones block GPS on non-secure pages.', true);
   if (!navigator.geolocation) return show('✕', 'err', 'GPS not supported', 'Use a device with GPS.', true);
-  navigator.geolocation.getCurrentPosition(async pos => {
+  go('res'); $('rb').style.display = 'none';
+  show('📍', '', 'Getting GPS fix...', 'Keep this page open. Waiting for an accurate position...', false);
+  let best = null, done = false, wid = null;
+  const finish = async (err) => {
+    if (done) return; done = true; navigator.geolocation.clearWatch(wid); clearTimeout(tm);
+    if (!best) return show('✕', 'err', 'GPS Error', gpsMsg(err || { code: 3 }), true);
+    const pos = best;
     const d = await api({ action: 'record', ...cred(), type, qr: text.trim(),
       lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy });
-    // QR secret and distance are verified on the server
+    // QR secret, accuracy and distance are verified on the server
     if (d.status === 'success') {
       show('✓', 'ok', 'ATTENDANCE RECORDED', `${d.name}\nClocked ${type} at ${d.time}\nDistance: ${d.distance} m`, true);
     } else show('✕', 'err', 'NOT RECORDED', d.message, true);
-  }, err => show('✕', 'err', 'GPS Error', err.message + ' (HTTPS and location permission required)', true),
-  { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
-  go('res'); $('rb').style.display = 'none';
+  };
+  // GPS starts coarse (wifi/cell) and sharpens over several seconds, so keep the best fix
+  wid = navigator.geolocation.watchPosition(pos => {
+    if (!best || pos.coords.accuracy < best.coords.accuracy) best = pos;
+    $('rm').innerText = 'Accuracy: ' + Math.round(best.coords.accuracy) + ' m (improving...)';
+    if (best.coords.accuracy <= 40) finish();
+  }, err => finish(err), { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  const tm = setTimeout(() => finish(), 20000);
+}
+function gpsMsg(e) {
+  if (e.code === 1) return 'Location permission is blocked. Open this site in Chrome/Safari (not inside WhatsApp, Facebook or another app), tap the lock icon next to the address, set Location to Allow, also turn on the phone\'s Location/GPS, then try again.';
+  if (e.code === 2) return 'Phone could not find your position. Turn on Location (GPS), go near a window or outdoors, then retry.';
+  return 'Location request timed out. Turn on high-accuracy GPS and retry.';
 }
 function show(ic, cls, t, m, btn) {
   $('ri').className = 'icon ' + cls; $('ri').innerText = ic; $('rt').innerText = t;
